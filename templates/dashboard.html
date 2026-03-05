@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard - Women's Health Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f1 100%);
+            min-height: 100vh;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: 600;
+            color: #6c5ce7;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            background-color: #6c5ce7;
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+        }
+        
+        .prediction-value {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: #6c5ce7;
+        }
+        
+        .recommendation-item {
+            padding: 1rem;
+            border-radius: 10px;
+            background-color: #f8f9fa;
+            margin-bottom: 0.5rem;
+        }
+        
+        .table {
+            background-color: white;
+            border-radius: 15px;
+        }
+        
+        .table th {
+            border-top: none;
+            font-weight: 600;
+            color: #444;
+        }
+        
+        .btn-custom {
+            padding: 0.8rem 2rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-radius: 10px;
+        }
+        
+        .btn-primary {
+            background-color: #6c5ce7;
+            border-color: #6c5ce7;
+        }
+        
+        .btn-primary:hover {
+            background-color: #5b4bc4;
+            border-color: #5b4bc4;
+        }
+        
+        .alert {
+            border-radius: 10px;
+        }
+        
+        .trend-indicator {
+            font-size: 0.875rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .trend-up {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .trend-down {
+            background-color: #fbe9e7;
+            color: #d84315;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        .health-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            height: 100%;
+        }
+        
+        .health-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .prediction-card {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+        }
+        
+        .trend-card {
+            background: linear-gradient(135deg, #00cec9, #81ecec);
+        }
+        
+        .recommendation-card {
+            background: linear-gradient(135deg, #fdcb6e, #ffeaa7);
+        }
+        
+        .trend-icon {
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
+        }
+        
+        .trend-improving {
+            color: #00b894;
+        }
+        
+        .trend-declining {
+            color: #d63031;
+        }
+        
+        .trend-steady {
+            color: #fdcb6e;
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        
+        .importance-bar {
+            height: 10px;
+            border-radius: 5px;
+            background-color: rgba(255, 255, 255, 0.3);
+            margin-bottom: 5px;
+        }
+        
+        .importance-fill {
+            height: 100%;
+            border-radius: 5px;
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-heartbeat me-2"></i>
+                Women's Health Tracker
+            </a>
+            <div class="d-flex">
+                <a href="{{ url_for('add_record') }}" class="btn btn-primary btn-custom me-2">
+                    <i class="fas fa-plus me-2"></i>Add Record
+                </a>
+                <a href="{{ url_for('chat') }}" class="btn btn-info btn-custom me-2">
+                    <i class="fas fa-robot me-2"></i>Health Assistant
+                </a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-custom">
+                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row mb-4">
+            <div class="col">
+                <h2 class="mb-0">Welcome, {{ name }}!</h2>
+                <p class="text-muted">Here's your health overview</p>
+            </div>
+        </div>
+
+        {% if predictions %}
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="fas fa-brain me-2"></i>AI Energy Prediction</h4>
+                    </div>
+                    <div class="card-body text-center">
+                        <p class="mb-2">Predicted Energy Level for Tomorrow</p>
+                        <div class="prediction-value mb-3">{{ predictions.predicted_energy }}/10</div>
+                        <div class="progress mb-3">
+                            <div class="progress-bar bg-primary" role="progressbar" 
+                                 style="width: {{ predictions.predicted_energy * 10 }}%" 
+                                 aria-valuenow="{{ predictions.predicted_energy * 10 }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100"></div>
+                        </div>
+                        <div class="mt-4">
+                            <h5 class="mb-3">Impact Factors</h5>
+                            <div class="row">
+                                {% for factor, importance in predictions.importance.items() %}
+                                <div class="col-6 mb-2">
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress flex-grow-1" style="height: 8px;">
+                                            <div class="progress-bar bg-info" role="progressbar" 
+                                                 style="width: {{ importance * 100 }}%"></div>
+                                        </div>
+                                        <span class="ms-2 text-muted small">{{ factor }}</span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Recommendations</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if predictions.recommendations %}
+                            {% for rec in predictions.recommendations %}
+                                <div class="recommendation-item">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    {{ rec }}
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted text-center mb-0">Great job! No specific recommendations at this time.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="fas fa-chart-line me-2"></i>Energy & Sleep Trends</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="energySleepChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Stress & Exercise Impact</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="stressExerciseChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Wellness Overview</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="wellnessChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="fas fa-arrows-trend-up me-2"></i>Weekly Trends</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for metric, trend in predictions.trends.items() %}
+                            <div class="col-6 mb-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted">{{ metric|title }}</span>
+                                    <span class="trend-indicator {{ 'trend-up' if trend > 0 else 'trend-down' if trend < 0 else '' }}">
+                                        {% if trend > 0 %}
+                                            <i class="fas fa-arrow-up"></i> Improving
+                                        {% elif trend < 0 %}
+                                            <i class="fas fa-arrow-down"></i> Declining
+                                        {% else %}
+                                            <i class="fas fa-minus"></i> Steady
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% elif records %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Add at least 3 records to see AI predictions and recommendations!
+            </div>
+        {% endif %}
+
+        {% if records %}
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="fas fa-history me-2"></i>Health Records</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Sleep Hours</th>
+                                    <th>Stress Level</th>
+                                    <th>Energy Level</th>
+                                    <th>Exercise Minutes</th>
+                                    <th>Water Intake</th>
+                                    <th>Mood Score</th>
+                                    <th>Meditation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in records %}
+                                <tr>
+                                    <td>{{ record.date }}</td>
+                                    <td>{{ record.sleep_hours }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {{ record.stress_level }}/10
+                                            <div class="progress ms-2" style="width: 60px; height: 6px;">
+                                                <div class="progress-bar bg-{{ 'danger' if record.stress_level > 7 else 'warning' if record.stress_level > 4 else 'success' }}"
+                                                     role="progressbar" style="width: {{ record.stress_level * 10 }}%" aria-valuenow="{{ record.stress_level * 10 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {{ record.energy_level }}/10
+                                            <div class="progress ms-2" style="width: 60px; height: 6px;">
+                                                <div class="progress-bar bg-primary" role="progressbar" 
+                                                     style="width: {{ record.energy_level * 10 }}%" aria-valuenow="{{ record.energy_level * 10 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ record.exercise_minutes }} min</td>
+                                    <td>{{ record.water_intake }} glasses</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {{ record.mood_score }}/10
+                                            <div class="progress ms-2" style="width: 60px; height: 6px;">
+                                                <div class="progress-bar bg-success" role="progressbar" 
+                                                     style="width: {{ record.mood_score * 10 }}%" aria-valuenow="{{ record.mood_score * 10 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ record.meditation_minutes }} min</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                    <h4>No Records Yet</h4>
+                    <p class="text-muted mb-4">Start tracking your health journey by adding your first record</p>
+                    <a href="{{ url_for('add_record') }}" class="btn btn-primary btn-custom">
+                        <i class="fas fa-plus me-2"></i>Add Your First Record
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% if predictions and predictions.chart_data %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Safely parse JSON data from Jinja templates
+            const chartData = {
+                dates: JSON.parse('{{ predictions.chart_data.dates|tojson }}'),
+                sleep: JSON.parse('{{ predictions.chart_data.sleep|tojson }}'),
+                stress: JSON.parse('{{ predictions.chart_data.stress|tojson }}'),
+                mood: JSON.parse('{{ predictions.chart_data.mood|tojson }}'),
+                exercise: JSON.parse('{{ predictions.chart_data.exercise|tojson }}'),
+                energy: JSON.parse('{{ predictions.chart_data.energy|tojson }}'),
+                water: JSON.parse('{{ predictions.chart_data.water|default([])|tojson }}'),
+                meditation: JSON.parse('{{ predictions.chart_data.meditation|default([])|tojson }}')
+            };
+            
+            // Energy & Sleep Chart
+            const energySleepCtx = document.getElementById('energySleepChart').getContext('2d');
+            new Chart(energySleepCtx, {
+                type: 'line',
+                data: {
+                    labels: chartData.dates,
+                    datasets: [{
+                        label: 'Energy Level',
+                        data: chartData.energy,
+                        borderColor: '#6c5ce7',
+                        tension: 0.4
+                    }, {
+                        label: 'Sleep Hours',
+                        data: chartData.sleep,
+                        borderColor: '#00cec9',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Stress & Exercise Chart
+            const stressExerciseCtx = document.getElementById('stressExerciseChart').getContext('2d');
+            new Chart(stressExerciseCtx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.dates,
+                    datasets: [{
+                        label: 'Stress Level',
+                        data: chartData.stress,
+                        backgroundColor: '#ff7675'
+                    }, {
+                        label: 'Exercise Minutes',
+                        data: chartData.exercise,
+                        backgroundColor: '#55efc4'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Wellness Overview Chart
+            const wellnessCtx = document.getElementById('wellnessChart').getContext('2d');
+            
+            // Get latest data with fallbacks
+            const waterValue = chartData.water.length > 0 ? chartData.water[0] : 5;
+            const moodValue = chartData.mood.length > 0 ? chartData.mood[0] : 5;
+            const meditationValue = chartData.meditation.length > 0 ? chartData.meditation[0] / 60 : 0.5;
+            
+            new Chart(wellnessCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['Water Intake', 'Mood Score', 'Meditation Time'],
+                    datasets: [{
+                        label: 'Current Level',
+                        data: [waterValue, moodValue, meditationValue],
+                        backgroundColor: 'rgba(108, 92, 231, 0.2)',
+                        borderColor: '#6c5ce7',
+                        pointBackgroundColor: '#6c5ce7'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            min: 0,
+                            max: 10
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+    {% endif %}
+</body>
+</html>
